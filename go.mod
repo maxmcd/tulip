@@ -1,12 +1,14 @@
 module github.com/maxmcd/tulip
 
-go 1.24.0
+go 1.23.0
 
 require (
+	bazil.org/fuse v0.0.0-20180421153158-65cc252bf669
 	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/config v1.29.14
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.67
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.2
+	golang.org/x/sys v0.32.0
 )
 
 require (
@@ -24,4 +26,5 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19 // indirect
 	github.com/aws/smithy-go v1.22.2 // indirect
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859 // indirect
 )
