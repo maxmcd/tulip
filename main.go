@@ -76,7 +76,36 @@ func main() {
 		}
 
 		slog.InfoContext(ctx, "Page view", "count", count, "path", r.URL.Path, "method", r.Method)
-		fmt.Fprintf(w, "Page views: %d", count)
+
+		// Send minimal HTML response
+		w.Header().Set("Content-Type", "text/html")
+		html := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Counter</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #fff;
+    }
+    .counter {
+      font-size: 5rem;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="counter">%d 🌷</div>
+</body>
+</html>`, count)
+		fmt.Fprint(w, html)
 	})
 
 	// Start server
