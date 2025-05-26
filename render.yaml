@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: tulip
+    runtime: go
+    plan: free
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 5
