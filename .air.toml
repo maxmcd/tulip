@@ -1,0 +1,24 @@
+# Config file for air - hot reload for Go
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/tulip ."
+bin = "./tmp/tulip"
+include_ext = ["go"]
+exclude_dir = ["tmp", "vendor"]
+delay = 1000
+# Create a trigger file for browser-sync to detect
+post_cmd = "touch ./tmp/last-build-$(date +%s)"
+
+[log]
+time = true
+
+[color]
+main = "magenta"
+watcher = "cyan"
+build = "yellow"
+runner = "green"
+
+[misc]
+clean_on_exit = true
