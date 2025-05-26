@@ -18,7 +18,7 @@ func main() {
 
 	// Determine database path
 	dbPath := "counter.db"
-	if _, exists := os.LookupEnv("RENDER_IP"); exists {
+	if _, exists := os.LookupEnv("RENDER"); exists {
 		dbPath = filepath.Join("/data", "counter.db")
 	}
 	slog.Info("Using database path", "path", dbPath)
