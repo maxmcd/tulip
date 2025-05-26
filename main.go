@@ -83,8 +83,15 @@ func main() {
 		slog.Error("Failed to load posts", "error", err)
 	}
 
-	// Parse templates
-	tmpl, err := template.ParseFS(tmplFS, "tmpl/*.html")
+	// Parse templates with a function map for template definitions
+	tmpl := template.New("").Funcs(template.FuncMap{
+		"formatDate": func(t time.Time) string {
+			return t.Format("January 2, 2006")
+		},
+	})
+
+	// Parse all templates
+	tmpl, err = tmpl.ParseFS(tmplFS, "tmpl/*.html")
 	if err != nil {
 		slog.Error("Failed to parse templates", "error", err)
 		panic(1)
@@ -116,8 +123,10 @@ func main() {
 			w.Header().Set("Content-Type", "text/html")
 			data := struct {
 				Count int
+				Title string
 			}{
 				Count: count,
+				Title: "My Site",
 			}
 			if err := tmpl.ExecuteTemplate(w, "home.html", data); err != nil {
 				slog.ErrorContext(ctx, "Failed to execute template", "error", err)

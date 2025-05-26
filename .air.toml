@@ -7,6 +7,7 @@ cmd = "go build -o ./tmp/tulip ."
 bin = "./tmp/tulip"
 include_ext = ["go"]
 exclude_dir = ["tmp", "vendor"]
+include_dir = ["tmpl"]
 delay = 1000
 # Create a trigger file for browser-sync to detect
 post_cmd = "touch ./tmp/last-build-$(date +%s)"

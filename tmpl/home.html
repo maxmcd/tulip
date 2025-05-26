@@ -1,41 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Site</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background-color: #fff;
-    }
-    .content {
-      text-align: center;
-    }
-    .counter {
-      font-size: 5rem;
-      color: #333;
-      margin-bottom: 20px;
-    }
-    .links a {
-      color: #0366d6;
-      font-size: 1.5rem;
-      text-decoration: none;
-      margin: 0 10px;
-    }
-    .links a:hover {
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
+{{template "header.html" .}}
+<body class="home-body">
   <div class="content">
-    <div class="counter">{{.Count}} 🌷</div>
+    <div class="home-counter">{{.Count}} 🌷</div>
     <div class="links">
       <a href="/blog">View Blog</a>
     </div>
