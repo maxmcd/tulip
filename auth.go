@@ -87,7 +87,7 @@ func setSessionCookie(w http.ResponseWriter, sessionToken string) {
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   cookieMaxAge,
 	})
 }
@@ -100,116 +100,9 @@ func clearSessionCookie(w http.ResponseWriter) {
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
-}
-
-// handleLogin processes the login form submission
-func handleLogin(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Only handle POST requests
-	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	// Parse form
-	if err := r.ParseForm(); err != nil {
-		slog.ErrorContext(ctx, "Failed to parse form", "error", err)
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
-
-	// Get email from form
-	email := strings.TrimSpace(r.FormValue("email"))
-	if email == "" {
-		http.Redirect(w, r, "/login?error=email_required", http.StatusSeeOther)
-		return
-	}
-
-	// Generate login link
-	loginURL, err := createLoginLink(email, r)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to create login link", "error", err)
-		http.Redirect(w, r, "/login?error=server_error", http.StatusSeeOther)
-		return
-	}
-
-	// Send login email
-	err = sendLoginEmail(email, loginURL)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to send login email", "error", err, "email", email)
-		http.Redirect(w, r, "/login?error=email_send_failed", http.StatusSeeOther)
-		return
-	}
-
-	slog.InfoContext(ctx, "Login email sent", "email", email)
-	http.Redirect(w, r, "/login?status=email_sent", http.StatusSeeOther)
-}
-
-// handleLoginVerify processes magic link verification
-func handleLoginVerify(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Get token from query
-	token := r.URL.Query().Get("token")
-	if token == "" {
-		http.Redirect(w, r, "/login?error=invalid_token", http.StatusSeeOther)
-		return
-	}
-
-	// Verify token
-	email, err := VerifyMagicLink(token)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to verify magic link", "error", err)
-		http.Redirect(w, r, "/login?error=invalid_token", http.StatusSeeOther)
-		return
-	}
-
-	// Get or create user
-	user, err := CreateOrGetUser(email)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get/create user", "error", err, "email", email)
-		http.Redirect(w, r, "/login?error=server_error", http.StatusSeeOther)
-		return
-	}
-
-	// Create session
-	sessionToken, err := CreateSession(user.ID)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to create session", "error", err, "user_id", user.ID)
-		http.Redirect(w, r, "/login?error=server_error", http.StatusSeeOther)
-		return
-	}
-
-	// Set session cookie
-	setSessionCookie(w, sessionToken)
-
-	slog.InfoContext(ctx, "User logged in", "user_id", user.ID, "email", user.Email)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
-
-// handleLogout processes logout requests
-func handleLogout(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Get session token from cookie
-	cookie, err := r.Cookie(sessionCookieName)
-	if err == nil {
-		// Delete session from database
-		err = DeleteSession(cookie.Value)
-		if err != nil {
-			slog.ErrorContext(ctx, "Failed to delete session", "error", err)
-		}
-	}
-
-	// Clear session cookie
-	clearSessionCookie(w)
-
-	slog.InfoContext(ctx, "User logged out")
-	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // handleLoginWithError is a wrapper for handleLogin that returns errors
