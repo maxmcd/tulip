@@ -48,10 +48,7 @@ type PageMeta struct {
 }
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		slog.Error("Error loading .env file", "error", err)
-		panic(1)
-	}
+	_ = godotenv.Load() // it's ok if there's no .env
 
 	// Setup structured logging
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
