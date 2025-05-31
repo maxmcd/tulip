@@ -1,0 +1,39 @@
+{{template "header.html" .}}
+<body class="blog-body">
+  <div class="error-container">
+    <div class="error-icon">⚠️</div>
+    <h1>{{.Title}}</h1>
+
+    <div class="error-message">
+      {{.ErrorMessage}}
+    </div>
+
+    {{if .ErrorDetail}}
+      <div class="error-details">
+        <h3>Error Details</h3>
+        <pre>{{.ErrorDetail}}</pre>
+      </div>
+    {{end}}
+
+
+    <div class="error-help">
+      <h3>What can you do?</h3>
+      <ul>
+        <li>Try <a href="javascript:history.back()">going back</a> to the previous page</li>
+        <li>Return to the <a href="/">homepage</a></li>
+        {{if .User}}
+          <li>Try <a href="/logout" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">logging out</a> and logging back in
+            <form id="logout-form" action="/logout" method="post" style="display: none;"></form>
+          </li>
+        {{else}}
+          <li>Try <a href="/login">logging in</a></li>
+        {{end}}
+      </ul>
+    </div>
+
+    <div class="counter">
+      Page viewed {{.Count}} times
+    </div>
+  </div>
+</body>
+</html>

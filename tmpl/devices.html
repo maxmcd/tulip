@@ -1,0 +1,34 @@
+{{template "header.html" .}}
+<body class="blog-body">
+  <div class="devices-container">
+    <h1>Your Devices</h1>
+
+    {{if .Devices}}
+      <table class="devices-table">
+        <thead>
+          <tr>
+            <th>Hostname</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Devices}}
+            <tr class="device-row">
+              <td class="device-name">{{.Hostname}}</td>
+              <td>{{.DeviceType}}</td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+    {{else}}
+      <div class="no-devices">
+        <p>You don't have any devices registered yet.</p>
+      </div>
+    {{end}}
+
+    <div class="counter">
+      Page viewed {{.Meta.Count}} times
+    </div>
+  </div>
+</body>
+</html>

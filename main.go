@@ -2,11 +2,9 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
 	"embed"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/yuin/goldmark"
 	"gopkg.in/yaml.v3"
@@ -22,6 +21,7 @@ import (
 
 //go:embed tmpl/*.html
 var tmplFS embed.FS
+var tmpl *template.Template
 
 // Post represents a blog post with frontmatter
 type Post struct {
@@ -32,50 +32,47 @@ type Post struct {
 	FileName string
 }
 
+// PageData is the common data structure for page templates
+type PageData struct {
+	Posts   []Post
+	Post    Post
+	Devices []Device
+	Meta    PageMeta
+}
+
+type PageMeta struct {
+	Title string
+	Count int
+	NoNav bool
+	User  *User
+}
+
 func main() {
+	if err := godotenv.Load(); err != nil {
+		slog.Error("Error loading .env file", "error", err)
+		panic(1)
+	}
+
 	// Setup structured logging
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	// Determine database path
-	dbPath := "counter.db"
-	if _, exists := os.LookupEnv("RENDER"); exists {
-		dbPath = filepath.Join("/data", "counter.db")
-	}
-	slog.Info("Using database path", "path", dbPath)
-
-	// Open database
-	db, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		slog.Error("Failed to open database", "error", err)
+	// Initialize database
+	if err := InitDB(); err != nil {
+		slog.Error("Failed to initialize database", "error", err)
 		panic(1)
 	}
-	defer db.Close()
+	defer DB.Close()
 
-	// Create table if not exists
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS counter (
-		id INTEGER PRIMARY KEY,
-		count INTEGER
-	)`)
-	if err != nil {
-		slog.Error("Failed to create table", "error", err)
-		panic(1)
-	}
-
-	// Initialize counter if needed
-	var count int
-	err = db.QueryRow("SELECT count FROM counter WHERE id = 1").Scan(&count)
-	if err == sql.ErrNoRows {
-		_, err = db.Exec("INSERT INTO counter (id, count) VALUES (1, 0)")
-		if err != nil {
-			slog.Error("Failed to initialize counter", "error", err)
-			panic(1)
+	// Run cleanup routine for expired sessions and magic links periodically
+	go func() {
+		for {
+			if err := CleanupExpiredData(); err != nil {
+				slog.Error("Failed to cleanup expired data", "error", err)
+			}
+			time.Sleep(1 * time.Hour)
 		}
-		count = 0
-	} else if err != nil {
-		slog.Error("Failed to query counter", "error", err)
-		panic(1)
-	}
+	}()
 
 	// Load blog posts
 	posts, err := loadPosts("./blog")
@@ -84,7 +81,7 @@ func main() {
 	}
 
 	// Parse templates with a function map for template definitions
-	tmpl := template.New("").Funcs(template.FuncMap{
+	tmpl = template.New("").Funcs(template.FuncMap{
 		"formatDate": func(t time.Time) string {
 			return t.Format("January 2, 2006")
 		},
@@ -97,23 +94,21 @@ func main() {
 		panic(1)
 	}
 
-	// HTTP handlers
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// HTTP handlers with error handling
+	http.HandleFunc("/", ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
 		ctx := r.Context()
-		// Increment counter
-		_, err := db.Exec("UPDATE counter SET count = count + 1 WHERE id = 1")
-		if err != nil {
-			slog.ErrorContext(ctx, "Failed to update counter", "error", err)
-			http.Error(w, "Failed to update counter", http.StatusInternalServerError)
-			return
+
+		// Get current user if logged in
+		var user *User
+		currentUser, err := getCurrentUser(r)
+		if err == nil {
+			user = &currentUser
 		}
 
-		// Get current count
-		err = db.QueryRow("SELECT count FROM counter WHERE id = 1").Scan(&count)
+		// Increment counter
+		count, err := IncrementCounter()
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to read counter", "error", err)
-			http.Error(w, "Failed to read counter", http.StatusInternalServerError)
-			return
+			return fmt.Errorf("failed to update counter: %w", err)
 		}
 
 		slog.InfoContext(ctx, "Page view", "count", count, "path", r.URL.Path, "method", r.Method)
@@ -121,39 +116,67 @@ func main() {
 		// Homepage
 		if r.URL.Path == "/" {
 			w.Header().Set("Content-Type", "text/html")
-			data := struct {
-				Count int
-				Title string
-			}{
-				Count: count,
-				Title: "My Site",
+			data := PageData{
+				Meta: PageMeta{
+					Count: count,
+					Title: "My Site",
+					NoNav: true, // Homepage has its own layout
+					User:  user,
+				},
 			}
 			if err := tmpl.ExecuteTemplate(w, "home.html", data); err != nil {
-				slog.ErrorContext(ctx, "Failed to execute template", "error", err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return fmt.Errorf("failed to render home page: %w", err)
 			}
-			return
+			return nil
+		}
+
+		// Login page
+		if r.URL.Path == "/login" {
+			if r.Method == http.MethodPost {
+				return handleLoginWithError(w, r)
+			}
+
+			w.Header().Set("Content-Type", "text/html")
+			if err := tmpl.ExecuteTemplate(w, "login.html", LoginPage{
+				Status: r.URL.Query().Get("status"),
+				Error:  r.URL.Query().Get("error"),
+				Meta: PageMeta{
+					Title: "Login",
+					Count: count,
+					User:  user,
+				},
+			},
+			); err != nil {
+				return fmt.Errorf("failed to render login page: %w", err)
+			}
+			return nil
+		}
+
+		// Login verification
+		if r.URL.Path == "/login/verify" {
+			return handleLoginVerifyWithError(w, r)
+		}
+
+		// Logout
+		if r.URL.Path == "/logout" && r.Method == http.MethodPost {
+			return handleLogoutWithError(w, r)
 		}
 
 		// Blog index
 		if r.URL.Path == "/blog" || r.URL.Path == "/blog/" {
 			w.Header().Set("Content-Type", "text/html")
-			data := struct {
-				IsIndex bool
-				Posts   []Post
-				Count   int
-				Title   string
-			}{
-				IsIndex: true,
-				Posts:   posts,
-				Count:   count,
-				Title:   "Blog",
+			data := PageData{
+				Meta: PageMeta{
+					Title: "Blog",
+					Count: count,
+					User:  user,
+				},
+				Posts: posts,
 			}
 			if err := tmpl.ExecuteTemplate(w, "blog.html", data); err != nil {
-				slog.ErrorContext(ctx, "Failed to execute template", "error", err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return fmt.Errorf("failed to render blog index: %w", err)
 			}
-			return
+			return nil
 		}
 
 		// Blog post
@@ -162,29 +185,61 @@ func main() {
 			for _, post := range posts {
 				if post.Slug == slug {
 					w.Header().Set("Content-Type", "text/html")
-					data := struct {
-						IsIndex bool
-						Post    Post
-						Count   int
-						Title   string
-					}{
-						IsIndex: false,
-						Post:    post,
-						Count:   count,
-						Title:   post.Title,
+					data := PageData{
+						Meta: PageMeta{
+							Title: post.Title,
+							Count: count,
+							User:  user,
+						},
+						Post: post,
 					}
 					if err := tmpl.ExecuteTemplate(w, "blog.html", data); err != nil {
-						slog.ErrorContext(ctx, "Failed to execute template", "error", err)
-						http.Error(w, "Internal server error", http.StatusInternalServerError)
+						return fmt.Errorf("failed to render blog post: %w", err)
 					}
-					return
+					return nil
 				}
 			}
 		}
 
+		// Devices page - protected, only for logged-in users
+		if r.URL.Path == "/devices" {
+			// Require authentication
+			if user == nil {
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
+				return nil
+			}
+
+			// Insert sample devices for new users
+			err = InsertSampleDevices(user.ID)
+			if err != nil {
+				return fmt.Errorf("failed to insert sample devices: %w", err)
+			}
+
+			// Get devices for this user
+			devices, err := GetDevices(user.ID)
+			if err != nil {
+				return fmt.Errorf("failed to get devices: %w", err)
+			}
+
+			w.Header().Set("Content-Type", "text/html")
+			data := PageData{
+				Meta: PageMeta{
+					Title: "Your Devices",
+					Count: count,
+					User:  user,
+				},
+				Devices: devices,
+			}
+
+			if err := tmpl.ExecuteTemplate(w, "devices.html", data); err != nil {
+				return fmt.Errorf("failed to render devices page: %w", err)
+			}
+			return nil
+		}
+
 		// 404 for anything else
-		http.NotFound(w, r)
-	})
+		return NewHTTPError(fmt.Errorf("page not found: %s", r.URL.Path), http.StatusNotFound)
+	}))
 
 	// Start server
 	port := os.Getenv("PORT")
@@ -212,7 +267,7 @@ func loadPosts(dir string) ([]Post, error) {
 
 	var posts []Post
 	for _, file := range files {
-		content, err := ioutil.ReadFile(file)
+		content, err := os.ReadFile(file)
 		if err != nil {
 			slog.Error("Failed to read post", "file", file, "error", err)
 			continue
@@ -262,4 +317,28 @@ func parsePost(content []byte, filename string) (Post, error) {
 	post.Content = template.HTML(buf.String())
 
 	return post, nil
+}
+
+// LoginPage holds data for the login page template
+type LoginPage struct {
+	Meta      PageMeta
+	Status    string
+	Error     string
+	LoggedIn  bool
+	UserEmail string
+}
+
+// getLoginPageData extracts query parameters and user data for the login page
+func getLoginPageData(r *http.Request, count int, user *User) LoginPage {
+	data := LoginPage{
+		Status: r.URL.Query().Get("status"),
+		Error:  r.URL.Query().Get("error"),
+		Meta: PageMeta{
+			Title: "Login",
+			Count: count,
+			User:  user,
+		},
+	}
+
+	return data
 }

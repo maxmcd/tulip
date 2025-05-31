@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="https://fav.farm/🌷" />
-  <title>{{if .Title}}{{.Title}}{{else}}Tulip{{end}}</title>
+  <title>{{if .Meta.Title}}{{.Meta.Title}}{{else}}Tulip{{end}}</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -67,5 +67,202 @@
       color: #333;
       margin-bottom: 20px;
     }
+
+    /* Nav styles */
+    .nav {
+      background-color: #f6f8fa;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .nav-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    /* Login page styles */
+    .login-container {
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    .login-form {
+      margin: 20px 0;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .form-actions {
+      margin-top: 20px;
+    }
+    .button {
+      display: inline-block;
+      padding: 8px 16px;
+      background-color: #0366d6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      text-decoration: none;
+    }
+    .button.secondary {
+      background-color: #6c757d;
+    }
+    .button:hover {
+      opacity: 0.9;
+      text-decoration: none;
+    }
+    .message {
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    .message.success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .login-note {
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .user-greeting {
+      font-weight: bold;
+    }
+
+    /* Error page styles */
+    .error-container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      text-align: center;
+    }
+    .error-icon {
+      font-size: 72px;
+      margin-bottom: 20px;
+    }
+    .error-message {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: 500;
+    }
+    .error-details, .error-stack {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      text-align: left;
+      overflow-x: auto;
+    }
+    .error-details pre, .error-stack pre {
+      margin: 0;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .error-help {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .error-help ul {
+      margin-top: 10px;
+      padding-left: 20px;
+    }
+    .error-help li {
+      margin-bottom: 10px;
+    }
+
+    /* Devices page styles */
+    .devices-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .devices-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .devices-table th,
+    .devices-table td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #e1e1e1;
+    }
+    .devices-table th {
+      background-color: #f6f8fa;
+      font-weight: bold;
+      color: #333;
+    }
+    .devices-table tr:last-child td {
+      border-bottom: none;
+    }
+    .devices-table tr:hover {
+      background-color: #f9f9f9;
+    }
+    .device-name {
+      font-weight: 500;
+    }
+    .no-devices {
+      background-color: #f6f8fa;
+      padding: 30px;
+      text-align: center;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
   </style>
 </head>
+{{if not .Meta.NoNav}}
+<header class="nav">
+  <div class="nav-brand">
+    <a href="/">🌷 Tulip</a>
+  </div>
+  <div class="nav-links">
+    <a href="/blog">Blog</a>
+    {{if .Meta.User}}
+      <a href="/devices">Devices</a>
+      <span class="user-greeting">Hello, {{.Meta.User.Email}}</span>
+      <form action="/logout" method="post" style="display: inline;">
+        <button type="submit" class="button secondary" style="padding: 4px 8px; font-size: 14px;">Logout</button>
+      </form>
+    {{else}}
+      <a href="/login">Login</a>
+    {{end}}
+  </div>
+</header>
+{{end}}

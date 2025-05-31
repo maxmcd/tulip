@@ -1,22 +1,14 @@
 {{template "header.html" .}}
 <body class="blog-body">
-  <p><a href="/">&larr; Home</a></p>
-  {{if .IsIndex}}
-    <h1>Blog</h1>
-    <ul class="posts">
-      {{range .Posts}}
-        <li>
-          <a href="/blog/{{.Slug}}">{{.Title}}</a>
-          <div class="date">{{formatDate .Date}}</div>
-        </li>
-      {{end}}
-    </ul>
-  {{else}}
-    <p><a href="/blog">&larr; Back to posts</a></p>
-    <h1>{{.Post.Title}}</h1>
-    <div class="date">{{formatDate .Post.Date}}</div>
-    <div>{{.Post.Content}}</div>
-  {{end}}
-  <div class="counter">Page views: {{.Count}} 🌷</div>
+  <h1>Blog</h1>
+  <ul class="posts">
+    {{range .Posts}}
+      <li>
+        <a href="/blog/{{.Slug}}">{{.Title}}</a>
+        <div class="date">{{formatDate .Date}}</div>
+      </li>
+    {{end}}
+  </ul>
+  <div class="counter">Page views: {{.Meta.Count}} 🌷</div>
 </body>
 </html>

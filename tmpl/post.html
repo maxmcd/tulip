@@ -1,0 +1,9 @@
+{{template "header.html" .}}
+<body class="blog-body">
+    <p><a href="/blog">&larr; Back to posts</a></p>
+    <h1>{{.Post.Title}}</h1>
+    <div class="date">{{formatDate .Post.Date}}</div>
+    <div>{{.Post.Content}}</div>
+    <div class="counter">Page views: {{.Meta.Count}} 🌷</div>
+</body>
+</html>

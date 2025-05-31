@@ -1,9 +1,17 @@
 {{template "header.html" .}}
 <body class="home-body">
   <div class="content">
-    <div class="home-counter">{{.Count}} 🌷</div>
+    <div class="home-counter">{{.Meta.Count}} 🌷</div>
     <div class="links">
       <a href="/blog">View Blog</a>
+      {{if .Meta.User}}
+        <span class="user-greeting">Hello, {{.Meta.User.Email}}!</span>
+        <form action="/logout" method="post" style="display: inline; margin-top: 20px;">
+          <button type="submit" class="button secondary">Logout</button>
+        </form>
+      {{else}}
+        <a href="/login">Login</a>
+      {{end}}
     </div>
   </div>
 </body>

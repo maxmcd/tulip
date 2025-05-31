@@ -1,0 +1,61 @@
+{{template "header.html" .}}
+<body class="blog-body">
+  <div class="login-container">
+    <h1>Login to Tulip</h1>
+
+    {{if .LoggedIn}}
+      <div class="message success">
+        You are already logged in as {{.UserEmail}}
+      </div>
+      <div class="actions">
+        <a href="/" class="button">Go to Home</a>
+        <form action="/logout" method="post">
+          <button type="submit" class="button secondary">Logout</button>
+        </form>
+      </div>
+    {{else}}
+      {{if eq .Status "email_sent"}}
+        <div class="message success">
+          Check your email for a login link! The link will expire in 15 minutes.
+        </div>
+      {{end}}
+
+      {{if eq .Error "email_required"}}
+        <div class="message error">
+          Please enter your email address.
+        </div>
+      {{else if eq .Error "server_error"}}
+        <div class="message error">
+          Something went wrong. Please try again.
+        </div>
+      {{else if eq .Error "email_send_failed"}}
+        <div class="message error">
+          Failed to send login email. Please try again.
+        </div>
+      {{else if eq .Error "invalid_token"}}
+        <div class="message error">
+          Invalid or expired login link. Please request a new one.
+        </div>
+      {{end}}
+
+      <form action="/login" method="post" class="login-form">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" placeholder="your@email.com" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="button primary">Send Login Link</button>
+        </div>
+      </form>
+
+      <p class="login-note">
+        We'll email you a magic link for password-free sign in.
+      </p>
+    {{end}}
+
+    <div class="counter">
+      Page viewed {{.Meta.Count}} times
+    </div>
+  </div>
+</body>
+</html>
